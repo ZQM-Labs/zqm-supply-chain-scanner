@@ -257,7 +257,7 @@ def to_sarif(findings: list[dict], repo: str) -> dict:
         "$schema": "https://json.schemastore.org/sarif-2.1.0",
         "runs": [
             {
-                "tool": {"driver": {"name": "zqm-snyk-replacement", "version": "0.1.0"}},
+                "tool": {"driver": {"name": "zqm-supply-chain-scanner", "version": "0.1.0"}},
                 "results": [
                     {
                         "ruleId": r["id"],
@@ -274,8 +274,8 @@ def to_sarif(findings: list[dict], repo: str) -> dict:
 
 def to_github_advisory_comment(findings: list[dict]) -> str:
     if not findings:
-        return ":white_check_mark: **zqm-snyk-replacement** — 0 supply-chain issues detected."
-    lines = [f"### :warning: zqm-snyk-replacement — {len(findings)} findings\n"]
+        return ":white_check_mark: **zqm-supply-chain-scanner** — 0 supply-chain issues detected."
+    lines = [f"### :warning: zqm-supply-chain-scanner — {len(findings)} findings\n"]
     for f in findings:
         lines.append(f"- **{f['type'].upper()}** `{f['package']}` @ {f.get('installed', '?')}: {f['message']}")
     lines.append(f"\n_Scanned {datetime.now(timezone.utc).isoformat()}Z_")
