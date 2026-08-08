@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-ZQM-Snyk-Replacement: open-source supply-chain scanner
-- Scans Python/JS/Go dependencies for vulnerabilities (OSV)
+ZQM Supply Chain Scanner — open-source Snyk replacement
+- Scans Python/JS/Go dependencies for vulnerabilities (OSV + pip-audit + safety)
 - Checks license compliance
 - Detects outdated packages
 - Outputs GitHub Security Advisory comments + SARIF
