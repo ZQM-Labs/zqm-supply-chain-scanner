@@ -282,6 +282,54 @@ def to_github_advisory_comment(findings: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def shell_cmd(cmd: list[str], cwd: str) -> dict | None:
+    try:
+        r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=120)
+        if r.returncode != 0:
+            return None
+        return json.loads(r.stdout)
+    except Exception:
+        return None
+
+
+def scan_pip_audit(repo_root: str) -> list[dict]:
+    findings = []
+    data = shell_cmd(["pip-audit", "--format=json", "--strict"], repo_root)
+    if not data:
+        return findings
+    for item in data:
+        name = item.get("name", "")
+        version = item.get("version", "")
+        vulns = item.get("vulns", [])
+        for v in vulns:
+            findings.append({
+                "type": "vulnerability",
+                "package": name,
+                "id": v.get("id"),
+                "installed": version,
+                "severity": v.get("severity", "medium"),
+                "message": f"{v.get('id', 'UNKNOWN')}: {v.get('fix_versions', ['no fix'])[0]}",
+            })
+    return findings
+
+
+def scan_safety(repo_root: str) -> list[dict]:
+    findings = []
+    data = shell_cmd(["safety", "check", "--json"], repo_root)
+    if not data:
+        return findings
+    for item in data:
+        findings.append({
+            "type": "vulnerability",
+            "package": item.get("package_name", ""),
+            "id": item.get("vulnerability_id"),
+            "installed": item.get("analyzed_version", ""),
+            "severity": item.get("severity", "medium"),
+            "message": f"{item.get('vulnerability_id', 'UNKNOWN')}: {item.get('advisory', '')[:180]}",
+        })
+    return findings
+
+
 # ── Main scan ───────────────────────────────────────────────────────────
 
 def scan_repo(repo_root: str, repo_full: str) -> tuple[list[dict], dict]:
@@ -365,6 +413,16 @@ def scan_repo(repo_root: str, repo_full: str) -> tuple[list[dict], dict]:
             })
 
     sarif = to_sarif(findings, repo_full)
+
+    # Secondary sources: pip-audit, safety
+    extra = scan_pip_audit(repo_root) + scan_safety(repo_root)
+    existing = {(f["type"], f["package"], f.get("id")) for f in findings}
+    for f in extra:
+        key = (f["type"], f["package"], f.get("id"))
+        if key not in existing:
+            findings.append(f)
+            existing.add(key)
+
     return findings, sarif
 
 
